@@ -11,3 +11,10 @@ client-backup-*/
 # Local secrets and dependencies
 .env
 node_modules/
+
+# Backup files
+*.backup
+*.bak
+*.bak.*
+*.before-*.bak
+*.reports-backup-*
