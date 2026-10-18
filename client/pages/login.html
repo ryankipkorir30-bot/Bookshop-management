@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Login | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/customer-auth.css">
+  <script src="/js/login.js" defer></script>
+</head>
+<body>
+  <main class="auth-container">
+    <section class="auth-card">
+      <a href="/" class="brand">📚 ChachaPkorir Bookshop</a>
+
+      <h1>Welcome back!</h1>
+      <p class="subtitle">Log in to checkout and manage your orders.</p>
+
+      <form id="loginForm">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email"
+               autocomplete="email" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"
+               autocomplete="current-password" required>
+
+        <button type="submit" id="loginButton">Log in</button>
+        <p id="authMessage" role="status" aria-live="polite"></p>
+      </form>
+
+      <p>New customer? <a id="registerLink" href="/pages/register.html">Create an account</a></p>
+      <a href="/">← Continue browsing books</a>
+    </section>
+  </main>
+</body>
+</html>

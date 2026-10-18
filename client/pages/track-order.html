@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10243a">
+  <title>Track your order | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    .tracking-wrap{max-width:1000px;margin:40px auto;padding:0 18px}
+    .tracking-panel{background:#fff;border-radius:16px;padding:24px;margin:20px 0;box-shadow:0 8px 28px #10243a12}
+    #trackingMap{height:420px;border-radius:12px;background:#eef2f5}
+    .tracking-state{padding:12px;border-radius:10px;background:#f1f5f9;margin:12px 0}
+    .tracking-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .tracking-grid>div{padding:12px;background:#f7f9fb;border-radius:10px;overflow-wrap:anywhere}
+    .tracking-label{font-size:.85rem;opacity:.7;display:block;margin-bottom:5px}
+    .tracking-error{color:#9f2222}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="/js/track-order.js" defer></script>
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span><strong>ChachaPkorir</strong><small>BOOKSHOP · KENYA</small></span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/#catalog">Browse Books</a>
+    </nav>
+  </header>
+  <main class="tracking-wrap">
+    <span class="eyebrow">ORDER TRACKING</span>
+    <h1>Track your books 📦</h1>
+    <p>View your order status and, when available, its delivery location.</p>
+    <section class="tracking-panel">
+      <h2 id="trackingHeading">Loading tracking details…</h2>
+      <div id="trackingMessage" class="tracking-state" role="status" aria-live="polite">Connecting to the bookshop…</div>
+      <div class="tracking-grid">
+        <div><span class="tracking-label">Order reference</span><strong id="trackingOrderNumber">—</strong></div>
+        <div><span class="tracking-label">Order status</span><strong id="trackingStatus">—</strong></div>
+        <div><span class="tracking-label">Delivery method</span><strong id="trackingMethod">—</strong></div>
+        <div><span class="tracking-label">Last GPS update</span><strong id="trackingUpdated">—</strong></div>
+      </div>
+    </section>
+    <section class="tracking-panel">
+      <h2>Delivery map</h2>
+      <p id="mapHelp">The map will show coordinates once the bookshop has set them.</p>
+      <div id="trackingMap" aria-label="Order delivery map"></div>
+      <p><small>Map data © OpenStreetMap contributors. Location updates depend on delivery staff sharing GPS.</small></p>
+    </section>
+    <p><a href="/">← Return to the bookshop</a></p>
+  </main>
+</body>
+</html>

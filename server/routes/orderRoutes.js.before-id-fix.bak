@@ -1,0 +1,564 @@
+
+const express = require("express");
+const { randomUUID, randomBytes, createHash } = require("crypto");
+const pool = require("../config/db");
+
+const router = express.Router();
+
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
+
+const { requireAuth, requireAdmin } =
+  require("../middleware/auth");
+
+
+/* Public order tracking: token grants access only to limited tracking data. */
+router.get(
+  "/track/:token",
+  asyncHandler(async (req, res) => {
+    const token = req.params.token;
+
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/i.test(token)) {
+      return res.status(404).json({
+        success: false,
+        message: "Tracking link is invalid or unavailable."
+      });
+    }
+
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+
+    const result = await pool.query(
+      `SELECT
+         order_number,
+         order_status,
+         delivery_method,
+         delivery_latitude,
+         delivery_longitude,
+         delivery_current_latitude,
+         delivery_current_longitude,
+         delivery_location_sharing,
+         delivery_location_updated_at
+       FROM orders
+       WHERE tracking_token_hash = $1
+       LIMIT 1`,
+      [tokenHash]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({
+        success: false,
+        message: "Tracking link is invalid or unavailable."
+      });
+    }
+
+    const order = result.rows[0];
+    const sharing = order.delivery_location_sharing === true;
+
+    res.set("Cache-Control", "no-store");
+    res.json({
+      success: true,
+      order: {
+        order_number: order.order_number,
+        order_status: order.order_status,
+        delivery_method: order.delivery_method,
+        destination_latitude: order.delivery_latitude,
+        destination_longitude: order.delivery_longitude,
+        location_sharing: sharing,
+        current_latitude: sharing ? order.delivery_current_latitude : null,
+        current_longitude: sharing ? order.delivery_current_longitude : null,
+        location_updated_at: sharing ? order.delivery_location_updated_at : null
+      }
+    });
+  })
+);
+
+// Administrator-only destination and delivery GPS updates.
+router.patch(
+  "/admin/:id/tracking",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const body = req.body || {};
+
+    if (!/^[1-9]\\d{0,17}$/.test(id)) {
+      return res.status(400).json({ success: false, message: "Invalid order ID." });
+    }
+
+    const has = key => Object.prototype.hasOwnProperty.call(body, key);
+    const updates = [];
+    const values = [];
+
+    function add(column, value) {
+      values.push(value);
+      updates.push(column + " = $" + values.length);
+    }
+
+    function coordinate(value, min, max, label) {
+      if (value === null) return null;
+      if (typeof value !== "number" || !Number.isFinite(value) ||
+          value < min || value > max) {
+        const error = new Error("Invalid " + label + ".");
+        error.status = 400;
+        throw error;
+      }
+      return value;
+    }
+
+    const pairs = [
+      ["destination_latitude", "destination_longitude",
+       "delivery_latitude", "delivery_longitude", "destination"],
+      ["current_latitude", "current_longitude",
+       "delivery_current_latitude", "delivery_current_longitude", "current"]
+    ];
+
+    let currentCoordinatesChanged = false;
+
+    for (const [latKey, lonKey, latColumn, lonColumn, label] of pairs) {
+      if (has(latKey) !== has(lonKey)) {
+        return res.status(400).json({
+          success: false,
+          message: "Provide both latitude and longitude for " + label + "."
+        });
+      }
+
+      if (has(latKey)) {
+        const lat = coordinate(body[latKey], -90, 90, label + " latitude");
+        const lon = coordinate(body[lonKey], -180, 180, label + " longitude");
+        add(latColumn, lat);
+        add(lonColumn, lon);
+        if (label === "current") currentCoordinatesChanged = true;
+      }
+    }
+
+    if (has("location_sharing")) {
+      if (typeof body.location_sharing !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          message: "location_sharing must be true or false."
+        });
+      }
+      add("delivery_location_sharing", body.location_sharing);
+    }
+
+    if (currentCoordinatesChanged) {
+      values.push(new Date());
+      updates.push("delivery_location_updated_at = $" + values.length);
+    }
+
+    if (!updates.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No tracking fields were supplied."
+      });
+    }
+
+    values.push(id);
+
+    const result = await pool.query(
+      `UPDATE orders
+       SET ${updates.join(", ")}
+       WHERE id = $${values.length}
+       RETURNING id, order_number, delivery_latitude, delivery_longitude,
+                 delivery_current_latitude, delivery_current_longitude,
+                 delivery_location_sharing, delivery_location_updated_at`,
+      values
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    res.json({
+      success: true,
+      message: "Order tracking details updated.",
+      order: result.rows[0]
+    });
+  })
+);
+
+// View customer orders — administrator only
+router.get(
+  "/admin",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      `SELECT
+         o.id,
+         o.order_number,
+         o.customer_name,
+         o.customer_email,
+         o.customer_phone,
+         o.delivery_method,
+         o.delivery_address,
+         o.total_amount,
+         o.payment_method,
+         o.payment_status,
+         o.order_status,
+         o.created_at,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'title', oi.book_title,
+               'quantity', oi.quantity,
+               'unit_price', oi.unit_price,
+               'line_total', oi.line_total
+             )
+           ) FILTER (WHERE oi.id IS NOT NULL),
+           '[]'::json
+         ) AS items
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       GROUP BY o.id
+       ORDER BY o.created_at DESC
+       LIMIT 200`
+    );
+
+    res.json({
+      success: true,
+      orders: result.rows
+    });
+  })
+);
+
+// Update fulfilment status — never marks a payment as paid
+router.patch(
+  "/admin/:id/status",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "confirmed",
+      "processing",
+      "dispatched",
+      "delivered",
+      "cancelled"
+    ];
+
+    if (!/^[1-9]\d{0,17}$/.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID."
+      });
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status."
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE orders
+       SET order_status = $1
+       WHERE id = $2
+         AND (
+           $1 = 'cancelled'
+           OR (
+             $1 <> 'cancelled'
+             AND payment_method = 'cash_on_delivery'
+           )
+           OR (
+             $1 <> 'cancelled'
+             AND payment_status = 'paid'
+           )
+         )
+         AND (
+           $1 <> 'delivered'
+           OR payment_method = 'cash_on_delivery'
+           OR payment_status = 'paid'
+         )
+       RETURNING id, order_number, order_status, payment_status`,
+      [status, id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Order not found or its payment status does not allow this change."
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Order status updated.",
+      order: result.rows[0]
+    });
+  })
+);
+
+router.post("/", asyncHandler(async (req, res) => {
+  const {
+    customer_name,
+    customer_email,
+    customer_phone,
+    delivery_method,
+    delivery_address,
+    payment_method,
+    items
+  } = req.body;
+
+  // Validate customer information
+  if (
+    typeof customer_name !== "string" ||
+    customer_name.trim().length < 2 ||
+    customer_name.trim().length > 120 ||
+    typeof customer_email !== "string" ||
+    customer_email.length > 255 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer_email) ||
+    typeof customer_phone !== "string" ||
+    !/^[0-9+()\s-]{7,30}$/.test(customer_phone)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter valid customer name, email, and phone details."
+    });
+  }
+
+  if (!["delivery", "collection"].includes(delivery_method)) {
+    return res.status(400).json({
+      success: false,
+      message: "Choose delivery or shop collection."
+    });
+  }
+
+  if (
+    delivery_method === "delivery" &&
+    (typeof delivery_address !== "string" ||
+      delivery_address.trim().length < 5 ||
+      delivery_address.trim().length > 500)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid delivery address."
+    });
+  }
+
+  if (!["mpesa", "card", "cash_on_delivery"].includes(payment_method)) {
+    return res.status(400).json({
+      success: false,
+      message: "Select a supported payment method."
+    });
+  }
+
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) {
+    return res.status(400).json({
+      success: false,
+      message: "Your cart must contain between 1 and 50 different books."
+    });
+  }
+
+  // Combine duplicate book IDs and validate quantities.
+  const cart = new Map();
+
+  for (const item of items) {
+    const id = String(item?.id ?? "");
+    const quantity = item?.quantity;
+
+    if (
+      !/^[1-9]\d{0,17}$/.test(id) ||
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more cart items are invalid."
+      });
+    }
+
+    const newQuantity = (cart.get(id) || 0) + quantity;
+
+    if (newQuantity > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "The quantity for a book cannot exceed 100."
+      });
+    }
+
+    cart.set(id, newQuantity);
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    let subtotalCents = 0;
+    const orderItems = [];
+
+    // Lock each book row while checking and updating stock.
+    // Sorting IDs consistently reduces deadlock risk.
+    const sortedCart = [...cart.entries()]
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    for (const [bookId, quantity] of sortedCart) {
+      const result = await client.query(
+        `SELECT id, title, price, stock_quantity
+         FROM books
+         WHERE id = $1 AND is_published = TRUE
+         FOR UPDATE`,
+        [bookId]
+      );
+
+      const book = result.rows[0];
+
+      if (!book) {
+        const error = new Error("A selected book is no longer available.");
+        error.status = 400;
+        throw error;
+      }
+
+      if (book.stock_quantity < quantity) {
+        const error = new Error(
+          `Not enough stock for "${book.title}". Available: ${book.stock_quantity}.`
+        );
+        error.status = 409;
+        throw error;
+      }
+
+      // PostgreSQL NUMERIC values arrive as strings.
+      // Convert prices to cents for reliable arithmetic.
+      const priceCents = Math.round(Number(book.price) * 100);
+      const lineCents = priceCents * quantity;
+
+      if (!Number.isSafeInteger(lineCents)) {
+        const error = new Error("Book price is outside supported limits.");
+        error.status = 400;
+        throw error;
+      }
+
+      subtotalCents += lineCents;
+
+      if (!Number.isSafeInteger(subtotalCents)) {
+        const error = new Error("Order total is too large.");
+        error.status = 400;
+        throw error;
+      }
+
+      orderItems.push({
+        book_id: book.id,
+        title: book.title,
+        quantity,
+        priceCents,
+        lineCents
+      });
+    }
+
+    // Example local delivery fee; configure this for your shop later.
+    const deliveryCents = delivery_method === "delivery" ? 25000 : 0;
+    const totalCents = subtotalCents + deliveryCents;
+
+
+    const trackingToken = randomBytes(32).toString("hex");
+    const trackingTokenHash = createHash("sha256")
+      .update(trackingToken)
+      .digest("hex");
+
+    const orderNumber =
+      "CPK-" + randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase();
+
+    const orderResult = await client.query(
+      `INSERT INTO orders (
+        order_number, customer_name, customer_email,
+        customer_phone, delivery_method, delivery_address,
+        subtotal, delivery_fee, total_amount, payment_method,
+        tracking_token_hash, payment_status, order_status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', 'pending')
+      RETURNING id, order_number, total_amount, payment_method,
+                payment_status, order_status, created_at`,
+      [
+        orderNumber,
+        customer_name.trim(),
+        customer_email.trim().toLowerCase(),
+        customer_phone.trim(),
+        delivery_method,
+        delivery_method === "delivery" ? delivery_address.trim() : null,
+        (subtotalCents / 100).toFixed(2),
+        (deliveryCents / 100).toFixed(2),
+        (totalCents / 100).toFixed(2),
+        payment_method,
+        trackingTokenHash
+      ]
+    );
+
+    const order = orderResult.rows[0];
+
+    for (const item of orderItems) {
+      await client.query(
+        `INSERT INTO order_items (
+          order_id, book_id, book_title,
+          quantity, unit_price, line_total
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          order.id,
+          item.book_id,
+          item.title,
+          item.quantity,
+          (item.priceCents / 100).toFixed(2),
+          (item.lineCents / 100).toFixed(2)
+        ]
+      );
+
+      await client.query(
+        `UPDATE books
+         SET stock_quantity = stock_quantity - $1,
+             updated_at = NOW()
+         WHERE id = $2`,
+        [item.quantity, item.book_id]
+      );
+    }
+
+    // Record the payment attempt. This does NOT mean it was paid.
+    await client.query(
+      `INSERT INTO payments (order_id, provider, amount, status)
+       VALUES ($1, $2, $3, 'pending')`,
+      [order.id, payment_method, order.total_amount]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: payment_method === "cash_on_delivery"
+        ? "Order placed. Payment is due on delivery."
+        : "Order created. Payment is still pending.",
+      order: {
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
+        order_status: order.order_status,
+        tracking_url: "/pages/track-order.html?token=" + trackingToken
+      }
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (error.status) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    console.error("Order creation error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to place the order. Please try again."
+    });
+  } finally {
+    client.release();
+  }
+}));
+
+module.exports = router;

@@ -1,0 +1,431 @@
+"use strict";
+
+const token = sessionStorage.getItem("bookshopToken");
+
+let revenueChart = null;
+let ordersChart = null;
+let analyticsLoading = false;
+let mainLoading = false;
+let coverPreviewUrl = null;
+
+const $ = id => document.getElementById(id);
+
+const formatMoney = value => new Intl.NumberFormat("en-KE", {
+  style: "currency",
+  currency: "KES",
+  maximumFractionDigits: 2
+}).format(Number(value) || 0);
+
+const formatNumber = value => new Intl.NumberFormat("en-KE")
+  .format(Number(value) || 0);
+
+const formatDate = value => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-KE");
+};
+
+// Always use textContent for database-provided values.
+function addCell(row, value) {
+  const cell = document.createElement("td");
+  cell.textContent = value == null ? "—" : String(value);
+  row.appendChild(cell);
+  return cell;
+}
+
+function showMessage(element, message, type = "") {
+  if (!element) return;
+  element.textContent = message;
+  element.className = "message" + (type ? " " + type : "");
+}
+
+function logout() {
+  sessionStorage.removeItem("bookshopToken");
+  window.location.replace("/admin/login.html");
+}
+
+async function api(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (token) headers.set("Authorization", "Bearer " + token);
+
+  // Do not set Content-Type for FormData: fetch adds the multipart boundary.
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401 || response.status === 403) {
+    logout();
+    throw new Error("Your administrator session has expired or access was denied.");
+  }
+
+  if (!response.ok || data.success === false) {
+    throw new Error(data.message || "Request failed (" + response.status + ").");
+  }
+
+  return data;
+}
+
+function updateOverviewCards(overview = {}) {
+  $("dashTotalOrders").textContent = formatNumber(overview.totalOrders);
+  $("dashRecentOrders").textContent =
+    formatNumber(overview.recentOrders) + " orders in the last 30 days";
+  $("dashRevenue").textContent = formatMoney(overview.paidRevenue30d);
+  $("dashBooksSold").textContent = formatNumber(overview.booksSold30d);
+  $("dashPendingOrders").textContent = formatNumber(overview.pendingOrders);
+  $("dashTotalBooks").textContent = formatNumber(overview.totalBooks);
+  $("dashStockUnits").textContent =
+    formatNumber(overview.stockUnits) + " copies in stock";
+  $("dashLowStock").textContent = formatNumber(overview.lowStockBooks);
+}
+
+function drawRevenueChart(sales) {
+  if (typeof Chart === "undefined") {
+    throw new Error("Chart.js did not load. Check your internet connection.");
+  }
+
+  const labels = sales.map(item => new Date(item.date).toLocaleDateString(
+    "en-KE", { day: "numeric", month: "short" }
+  ));
+
+  if (revenueChart) revenueChart.destroy();
+
+  revenueChart = new Chart($("dashboardRevenueChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Paid revenue (KSh)",
+          data: sales.map(item => Number(item.revenue) || 0),
+          borderColor: "#236b48",
+          backgroundColor: "rgba(35, 107, 72, 0.12)",
+          fill: true,
+          tension: 0.3,
+          yAxisID: "revenue"
+        },
+        {
+          label: "Books sold",
+          data: sales.map(item => Number(item.booksSold) || 0),
+          borderColor: "#d19a42",
+          backgroundColor: "#d19a42",
+          tension: 0.3,
+          yAxisID: "books"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        revenue: {
+          type: "linear",
+          position: "left",
+          beginAtZero: true,
+          title: { display: true, text: "KSh" }
+        },
+        books: {
+          type: "linear",
+          position: "right",
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: "Books" }
+        }
+      }
+    }
+  });
+}
+
+function drawOrdersChart(orders) {
+  if (typeof Chart === "undefined") return;
+
+  const counts = new Map();
+
+  for (const order of orders) {
+    if (!order.created_at) continue;
+    const date = new Date(order.created_at);
+    if (Number.isNaN(date.getTime())) continue;
+
+    const key = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  const entries = [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-14);
+
+  if (ordersChart) ordersChart.destroy();
+
+  ordersChart = new Chart($("dashboardOrdersChart"), {
+    type: "bar",
+    data: {
+      labels: entries.map(([date]) => {
+        const [year, month, day] = date.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString(
+          "en-KE", { day: "numeric", month: "short" }
+        );
+      }),
+      datasets: [{
+        label: "Orders received",
+        data: entries.map(([, count]) => count),
+        backgroundColor: "#80b991",
+        hoverBackgroundColor: "#236b48",
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+async function refreshAnalytics() {
+  if (analyticsLoading || !token) return;
+  analyticsLoading = true;
+  $("refreshAnalytics").disabled = true;
+
+  try {
+    const [overviewData, salesData, ordersData] = await Promise.all([
+      api("/api/analytics/overview"),
+      api("/api/analytics/sales?period=day"),
+      api("/api/orders/admin")
+    ]);
+
+    updateOverviewCards(overviewData.overview || {});
+    drawRevenueChart(salesData.sales || []);
+    drawOrdersChart(ordersData.orders || []);
+
+    showMessage(
+      $("dashboardAnalyticsMessage"),
+      "Analytics updated successfully.",
+      "success"
+    );
+    $("dashboardUpdatedAt").textContent =
+      "Last refreshed: " + new Date().toLocaleString("en-KE") +
+      " · Refreshes every 30 seconds.";
+  } catch (error) {
+    console.error("Dashboard analytics:", error);
+    showMessage(
+      $("dashboardAnalyticsMessage"),
+      "Could not update analytics: " + error.message,
+      "error"
+    );
+  } finally {
+    analyticsLoading = false;
+    $("refreshAnalytics").disabled = false;
+  }
+}
+
+async function loadInventory() {
+  const body = $("inventory");
+  body.replaceChildren();
+
+  try {
+    const data = await api("/api/books");
+    const books = Array.isArray(data.books) ? data.books : [];
+
+    $("inventoryCount").textContent = formatNumber(books.length);
+
+    if (!books.length) {
+      const row = body.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 6;
+      cell.className = "empty";
+      cell.textContent = "No books found.";
+      return;
+    }
+
+    for (const book of books) {
+      const row = body.insertRow();
+      addCell(row, book.title);
+      addCell(row, book.author);
+      addCell(row, book.category || "Uncategorised");
+      addCell(row, formatMoney(book.price));
+      addCell(row, formatNumber(book.stock_quantity));
+
+      const availability = addCell(row, "");
+      const badge = document.createElement("span");
+      badge.className = "status" +
+        (Number(book.stock_quantity) <= 5 ? " warning" : "");
+      badge.textContent =
+        Number(book.stock_quantity) <= 5 ? "Low stock" : "In stock";
+      availability.appendChild(badge);
+    }
+  } catch (error) {
+    const row = body.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 6;
+    cell.className = "empty";
+    cell.textContent = "Unable to load inventory: " + error.message;
+  }
+}
+
+async function loadOrders() {
+  const body = $("ordersList");
+  body.replaceChildren();
+
+  try {
+    const data = await api("/api/orders/admin");
+    const orders = Array.isArray(data.orders) ? data.orders : [];
+
+    $("ordersCount").textContent = formatNumber(orders.length);
+
+    if (!orders.length) {
+      const row = body.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 6;
+      cell.className = "empty";
+      cell.textContent = "No customer orders found.";
+      return;
+    }
+
+    for (const order of orders) {
+      const row = body.insertRow();
+      addCell(row, order.order_number || order.id);
+      addCell(
+        row,
+        order.customer_name || order.full_name || order.customer_email || "Customer"
+      );
+      addCell(row, formatMoney(order.total_amount));
+
+      const paymentCell = addCell(row, "");
+      const paymentBadge = document.createElement("span");
+      paymentBadge.className = "status";
+      paymentBadge.textContent = order.payment_status || "Unknown";
+      paymentCell.appendChild(paymentBadge);
+
+      const statusCell = addCell(row, "");
+      const statusBadge = document.createElement("span");
+      statusBadge.className = "status" +
+        (order.order_status === "cancelled" ? " error" :
+         order.order_status === "pending" ? " warning" : "");
+      statusBadge.textContent = order.order_status || "Unknown";
+      statusCell.appendChild(statusBadge);
+
+      addCell(row, formatDate(order.created_at));
+    }
+  } catch (error) {
+    const row = body.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 6;
+    cell.className = "empty";
+    cell.textContent = "Unable to load orders: " + error.message;
+  }
+}
+
+async function refreshMainTables() {
+  if (mainLoading || !token) return;
+  mainLoading = true;
+  $("refreshButton").disabled = true;
+
+  try {
+    await Promise.all([loadInventory(), loadOrders()]);
+    showMessage($("pageMessage"), "Administrator dashboard loaded.", "success");
+  } catch (error) {
+    showMessage($("pageMessage"), error.message, "error");
+  } finally {
+    mainLoading = false;
+    $("refreshButton").disabled = false;
+  }
+}
+
+const coverInput = $("cover_image");
+const coverPreview = $("coverPreview");
+
+if (coverInput && coverPreview) {
+  coverInput.addEventListener("change", () => {
+    if (coverPreviewUrl) {
+      URL.revokeObjectURL(coverPreviewUrl);
+      coverPreviewUrl = null;
+    }
+
+    const file = coverInput.files && coverInput.files[0];
+
+    if (!file) {
+      coverPreview.hidden = true;
+      coverPreview.removeAttribute("src");
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      alert("Choose a JPG, PNG, or WebP image no larger than 5 MB.");
+      coverInput.value = "";
+      coverPreview.hidden = true;
+      coverPreview.removeAttribute("src");
+      return;
+    }
+
+    coverPreviewUrl = URL.createObjectURL(file);
+    coverPreview.src = coverPreviewUrl;
+    coverPreview.hidden = true;
+  });
+}
+
+$("bookForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("saveBookButton");
+  button.disabled = true;
+  showMessage($("formMessage"), "Saving book...");
+
+  const form = new FormData(event.currentTarget);
+
+  try {
+    await api("/api/books", {
+      method: "POST",
+      body: form
+    });
+
+    $("bookForm").reset();
+
+    if (coverPreviewUrl) {
+      URL.revokeObjectURL(coverPreviewUrl);
+      coverPreviewUrl = null;
+    }
+    if (coverPreview) {
+      coverPreview.hidden = true;
+      coverPreview.removeAttribute("src");
+    }
+
+    showMessage($("formMessage"), "Book saved successfully.", "success");
+    await Promise.all([loadInventory(), refreshAnalytics()]);
+  } catch (error) {
+    showMessage(
+      $("formMessage"),
+      "Could not save book: " + error.message,
+      "error"
+    );
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("refreshAnalytics").addEventListener("click", refreshAnalytics);
+$("refreshButton").addEventListener("click", refreshMainTables);
+$("refreshInventoryButton").addEventListener("click", loadInventory);
+$("refreshOrdersButton").addEventListener("click", loadOrders);
+$("logoutButton").addEventListener("click", logout);
+
+if (!token) {
+  window.location.replace("/admin/login.html");
+} else {
+  refreshMainTables();
+  refreshAnalytics();
+  setInterval(refreshAnalytics, 30000);
+  setInterval(refreshMainTables, 30000);
+}

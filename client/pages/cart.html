@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10243a">
+  <title>Your Shopping Cart | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/cart.js" defer></script>
+</head>
+<body>
+  <div class="announcement">Your next great read is waiting for you 📚</div>
+
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span>
+        <strong>ChachaPkorir</strong>
+        <small>BOOKSHOP · KENYA</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/#catalog">Browse Books</a>
+      <a href="/#about">About Us</a>
+    </nav>
+
+    <a class="cart-button" href="/pages/cart.html">
+      🛒 Cart <span class="cart-count" id="cartCount">0</span>
+    </a>
+  </header>
+
+  <main class="cart-page">
+    <div class="cart-heading">
+      <div>
+        <span class="eyebrow">YOUR SHOPPING BAG</span>
+        <h1>Your book collection.</h1>
+        <p>Review your selections before proceeding to checkout.</p>
+      </div>
+      <a href="/#catalog" class="secondary-button">← Continue shopping</a>
+    </div>
+
+    <div id="cartMessage" class="store-message" role="status" aria-live="polite"></div>
+
+    <div class="cart-layout">
+      <section class="cart-items-panel">
+        <div class="cart-panel-heading">
+          <h2>Your items</h2>
+          <span id="itemCount">0 items</span>
+        </div>
+
+        <div id="cartItems"></div>
+
+        <div id="emptyCart" class="empty-cart" hidden>
+          <div class="empty-cart-icon">🛍️</div>
+          <h2>Your cart is waiting for a book.</h2>
+          <p>Explore our collection and add something you would love to read.</p>
+          <a href="/#catalog" class="primary-button">Explore Books →</a>
+        </div>
+      </section>
+
+      <aside class="order-summary">
+        <h2>Order summary</h2>
+
+        <div class="summary-row">
+          <span>Books subtotal</span>
+          <strong id="cartSubtotal">KSh 0.00</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Estimated delivery</span>
+          <strong id="cartDelivery">KSh 0.00</strong>
+        </div>
+
+        <p class="summary-note">
+          Delivery is estimated at KSh 250. Collection has no delivery fee.
+          The final fulfilment cost will be confirmed at checkout.
+        </p>
+
+        <div class="summary-total">
+          <span>Estimated total</span>
+          <strong id="cartTotal">KSh 0.00</strong>
+        </div>
+
+        <button id="checkoutButton" class="primary-button checkout-button" type="button">
+          Proceed to Checkout →
+        </button>
+
+        <div class="cart-assurance">
+          <span>🔒</span>
+          <p><strong>Checkout securely</strong><br>
+          Your order total is recalculated by our server.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span><strong>ChachaPkorir</strong><small>BOOKSHOP · KENYA</small></span>
+    </a>
+    <p>© <span id="currentYear"></span> ChachaPkorir Bookshop</p>
+  </footer>
+</body>
+</html>

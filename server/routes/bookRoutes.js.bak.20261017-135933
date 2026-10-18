@@ -1,0 +1,195 @@
+
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs/promises");
+const { randomUUID } = require("crypto");
+const pool = require("../config/db");
+const { requireAuth, requireAdmin } =
+  require("../middleware/auth");
+
+const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1
+  }
+});
+
+const uploadDir = path.join(__dirname, "../../uploads/books");
+
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
+
+// Public catalog: only published books
+router.get("/", asyncHandler(async (req, res) => {
+  const search = String(req.query.search || "").trim().slice(0, 100);
+  const category = String(req.query.category || "").trim().slice(0, 100);
+
+  const result = await pool.query(
+    `SELECT id, title, author, category, description,
+            price, stock_quantity, cover_image
+     FROM books
+     WHERE is_published = TRUE
+       AND ($1 = '' OR title ILIKE '%' || $1 || '%'
+            OR author ILIKE '%' || $1 || '%')
+       AND ($2 = '' OR category = $2)
+     ORDER BY created_at DESC
+     LIMIT 100`,
+    [search, category]
+  );
+
+  res.json({ success: true, books: result.rows });
+}));
+
+// Admin-only book creation with image validation
+router.post(
+  "/",
+  requireAuth,
+  requireAdmin,
+  upload.single("cover"),
+  asyncHandler(async (req, res) => {
+    const { title, author, category, description, price, stock_quantity } =
+      req.body;
+
+    if (
+      typeof title !== "string" || !title.trim() ||
+      title.trim().length > 200 ||
+      typeof author !== "string" || !author.trim() ||
+      author.trim().length > 150
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid book title and author are required."
+      });
+    }
+
+    const bookPrice = Number(price);
+    const stock = Number(stock_quantity);
+
+    if (
+      price === "" || !Number.isFinite(bookPrice) ||
+      bookPrice < 0 || bookPrice > 100000000 ||
+      !Number.isInteger(stock) || stock < 0 ||
+      stock > 1000000
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid price and whole-number stock quantity."
+      });
+    }
+
+    if (typeof description === "string" && description.length > 5000) {
+      return res.status(400).json({
+        success: false,
+        message: "Description must be 5,000 characters or fewer."
+      });
+    }
+
+    let coverImage = null;
+    let savedPath = null;
+
+    const suppliedCover = String(req.body.cover_image || "").trim();
+    if (suppliedCover && !req.file) {
+      try {
+        const parsedCover = new URL(suppliedCover);
+        if (!["http:", "https:"].includes(parsedCover.protocol)) {
+          throw new Error("Invalid image URL protocol");
+        }
+        coverImage = parsedCover.href;
+      } catch {
+        return res.status(400).json({
+          success: false,
+          message: "Cover image must be a valid HTTP or HTTPS URL."
+        });
+      }
+    }
+
+    if (req.file) {
+      const { fileTypeFromBuffer } = await import("file-type");
+      const detected = await fileTypeFromBuffer(req.file.buffer);
+
+      const extensions = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp"
+      };
+
+      if (!detected || !extensions[detected.mime]) {
+        return res.status(400).json({
+          success: false,
+          message: "Use a valid JPEG, PNG or WebP cover image."
+        });
+      }
+
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const filename = randomUUID() + extensions[detected.mime];
+      savedPath = path.join(uploadDir, filename);
+
+      await fs.writeFile(savedPath, req.file.buffer, { flag: "wx" });
+      coverImage = `/uploads/books/${filename}`;
+    }
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO books
+         (title, author, category, description, price,
+          stock_quantity, cover_image, is_published)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+         RETURNING *`,
+        [
+          title.trim(),
+          author.trim(),
+          typeof category === "string" ? category.trim().slice(0, 100) || null : null,
+          typeof description === "string" ? description.trim() || null : null,
+          bookPrice,
+          stock,
+          coverImage
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Book added to the catalog.",
+        book: result.rows[0]
+      });
+    } catch (error) {
+      if (savedPath) await fs.unlink(savedPath).catch(() => {});
+      throw error;
+    }
+  })
+);
+
+// Admin catalog, including unpublished books
+router.get(
+  "/admin",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      "SELECT * FROM books ORDER BY created_at DESC LIMIT 500"
+    );
+
+    res.json({ success: true, books: result.rows });
+  })
+);
+
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      message: "Image upload failed or exceeded the 5 MB limit."
+    });
+  }
+
+  console.error("Book API error:", error.message);
+
+  res.status(500).json({
+    success: false,
+    message: "Unable to complete the book request."
+  });
+});
+
+module.exports = router;

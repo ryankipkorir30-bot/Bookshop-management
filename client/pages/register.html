@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/customer-auth.css">
+  <script src="/js/register.js" defer></script>
+</head>
+<body>
+  <main class="auth-container">
+    <section class="auth-card">
+      <a href="/" class="brand">📚 ChachaPkorir Bookshop</a>
+
+      <h1>Create your account</h1>
+      <p class="subtitle">Register to place orders and track your books.</p>
+
+      <form id="registerForm">
+        <label for="full_name">Full name</label>
+        <input id="full_name" name="full_name" type="text"
+               minlength="2" maxlength="120" autocomplete="name" required>
+
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email"
+               maxlength="255" autocomplete="email" required>
+
+        <label for="phone">Phone number</label>
+        <input id="phone" name="phone" type="tel"
+               maxlength="30" autocomplete="tel">
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"
+               minlength="8" maxlength="200"
+               autocomplete="new-password" required>
+
+        <button type="submit" id="registerButton">Create account</button>
+        <p id="authMessage" role="status" aria-live="polite"></p>
+      </form>
+
+      <p>Already have an account? <a id="loginLink" href="/pages/login.html">Log in</a></p>
+      <a href="/">← Continue browsing books</a>
+    </section>
+  </main>
+</body>
+</html>

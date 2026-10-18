@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="View your ChachaPkorir Bookshop orders and track their status.">
+  <title>My Orders | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/my-orders.css">
+  <script src="/js/my-orders.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">📚 ChachaPkorir Bookshop</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/pages/checkout.html">Checkout</a>
+      <button id="logoutButton" type="button">Log out</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="welcome">
+      <p class="eyebrow">YOUR ACCOUNT</p>
+      <h1>My Orders</h1>
+      <p>View your purchases, payment status and order progress.</p>
+    </section>
+
+    <div id="message" class="message" role="status" aria-live="polite">
+      Loading your orders...
+    </div>
+
+    <section id="ordersContainer" class="orders-grid" aria-label="Your orders"></section>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> ChachaPkorir Bookshop</p>
+  </footer>
+</body>
+</html>

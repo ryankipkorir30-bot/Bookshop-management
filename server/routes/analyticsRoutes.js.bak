@@ -1,0 +1,152 @@
+
+const express = require("express");
+const pool = require("../config/db");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
+
+const router = express.Router();
+
+/*
+  GET /api/analytics/sales?period=day
+  GET /api/analytics/sales?period=month
+  GET /api/analytics/sales?period=year
+
+  Admin-only sales analytics.
+*/
+
+router.get("/", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const period = String(req.query.period || "day");
+
+    const allowedPeriods = {
+      day: {
+        interval: "30 days",
+        description: "Daily sales for the last 30 days",
+      },
+      month: {
+        interval: "12 months",
+        description: "Monthly sales for the last 12 months",
+      },
+      year: {
+        interval: "5 years",
+        description: "Yearly sales for the last 5 years",
+      },
+    };
+
+    if (!Object.prototype.hasOwnProperty.call(allowedPeriods, period)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid period. Use day, month, or year.",
+      });
+    }
+
+    const config = allowedPeriods[period];
+
+    const result = await pool.query(
+      `
+      WITH paid_orders AS (
+        SELECT
+          order_id,
+          MIN(completed_at) AS paid_at,
+          SUM(amount) AS amount
+        FROM payments
+        WHERE status = 'completed'
+          AND completed_at IS NOT NULL
+        GROUP BY order_id
+      ),
+
+      book_counts AS (
+        SELECT
+          order_id,
+          SUM(quantity) AS books_sold
+        FROM order_items
+        GROUP BY order_id
+      ),
+
+      sales AS (
+        SELECT
+          DATE_TRUNC($1, p.paid_at) AS period_start,
+          SUM(p.amount) AS revenue,
+          COUNT(*) AS paid_orders,
+          COALESCE(SUM(b.books_sold), 0) AS books_sold
+        FROM paid_orders p
+        JOIN orders o ON o.id = p.order_id
+        LEFT JOIN book_counts b ON b.order_id = o.id
+        WHERE p.paid_at >= NOW() - $2::INTERVAL
+          AND o.order_status <> 'cancelled'
+        GROUP BY DATE_TRUNC($1, p.paid_at)
+      ),
+
+      periods AS (
+        SELECT generate_series(
+          DATE_TRUNC($1, NOW() - $2::INTERVAL),
+          DATE_TRUNC($1, NOW()),
+          CASE $1
+            WHEN 'day' THEN INTERVAL '1 day'
+            WHEN 'month' THEN INTERVAL '1 month'
+            WHEN 'year' THEN INTERVAL '1 year'
+          END
+        ) AS period_start
+      )
+
+      SELECT
+        periods.period_start,
+        COALESCE(s.revenue, 0)::NUMERIC(14, 2) AS revenue,
+        COALESCE(s.paid_orders, 0)::BIGINT AS paid_orders,
+        COALESCE(s.books_sold, 0)::BIGINT AS books_sold
+      FROM periods
+      LEFT JOIN sales s
+        ON s.period_start = periods.period_start
+      ORDER BY periods.period_start ASC
+      `,
+      [
+        period === "day"
+          ? "day"
+          : period === "month"
+            ? "month"
+            : "year",
+        config.interval,
+      ]
+    );
+
+    const sales = result.rows.map((row) => ({
+      date: row.period_start,
+      revenue: Number(row.revenue),
+      paidOrders: Number(row.paid_orders),
+      booksSold: Number(row.books_sold),
+    }));
+
+    const totals = sales.reduce(
+      (summary, row) => {
+        summary.revenue += row.revenue;
+        summary.paidOrders += row.paidOrders;
+        summary.booksSold += row.booksSold;
+
+        return summary;
+      },
+      {
+        revenue: 0,
+        paidOrders: 0,
+        booksSold: 0,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      description: config.description,
+      period,
+      currency: "KES",
+      totals,
+      sales,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Sales analytics error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load sales analytics.",
+    });
+  }
+});
+
+module.exports = router;

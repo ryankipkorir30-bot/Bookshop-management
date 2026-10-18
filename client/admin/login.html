@@ -1,0 +1,450 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>Admin Login | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/style.css">
+
+  <style>
+    :root {
+      --primary: #6558f5;
+      --primary-dark: #5145d9;
+      --ink: #182230;
+      --muted: #667085;
+      --border: #e4e7ec;
+      --surface: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 15% 15%, #e9e7ff 0, transparent 40%),
+        radial-gradient(ellipse at 85% 85%, #dceaff 0, transparent 40%),
+        #f7f8fc;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    .login-layout {
+      width: min(100%, 980px);
+      min-height: 580px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, .8);
+      border-radius: 26px;
+      box-shadow: 0 25px 80px rgba(25, 35, 70, .13);
+      animation: appear .55s ease both;
+    }
+
+    .brand-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 44px;
+      overflow: hidden;
+      color: white;
+      background: linear-gradient(145deg, #171b3d, #3730a3 58%, #6558f5);
+    }
+
+    .brand-panel::before,
+    .brand-panel::after {
+      position: absolute;
+      content: "";
+      width: 260px;
+      height: 260px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .brand-panel::before {
+      right: -110px;
+      top: 100px;
+      box-shadow: 0 0 0 35px rgba(255,255,255,.035),
+                  0 0 0 70px rgba(255,255,255,.025);
+    }
+
+    .brand-panel::after {
+      left: -170px;
+      bottom: -150px;
+    }
+
+    .brand,
+    .brand-copy,
+    .brand-footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      font-size: 17px;
+      font-weight: 750;
+      letter-spacing: -.4px;
+    }
+
+    .brand-icon {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 15px;
+      background: rgba(255,255,255,.13);
+      font-size: 25px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand-copy {
+      margin: auto 0;
+      padding: 45px 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 100px;
+      background: rgba(255,255,255,.09);
+      color: #e7e5ff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .brand-copy h2 {
+      max-width: 360px;
+      margin: 23px 0 16px;
+      font-size: clamp(30px, 4vw, 43px);
+      line-height: 1.12;
+      letter-spacing: -1.7px;
+    }
+
+    .brand-copy p {
+      max-width: 340px;
+      color: #dedfff;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .brand-footer {
+      color: #d4d5ff;
+      font-size: 12px;
+    }
+
+    .form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 45px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 350px;
+    }
+
+    .mobile-logo {
+      display: none;
+      margin-bottom: 28px;
+      font-size: 24px;
+    }
+
+    .welcome {
+      margin-bottom: 30px;
+    }
+
+    .welcome h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      letter-spacing: -1px;
+    }
+
+    .welcome p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .field-icon {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%);
+      font-size: 17px;
+      pointer-events: none;
+    }
+
+    .field input {
+      display: block;
+      width: 100%;
+      min-height: 51px;
+      padding: 13px 15px 13px 44px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      background: #fcfcfd;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+
+    .field input:hover {
+      border-color: #c5c9d8;
+    }
+
+    .field input:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(101, 88, 245, .12);
+    }
+
+    .field input::placeholder {
+      color: #98a2b3;
+    }
+
+    .submit-btn {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 5px;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(100deg, var(--primary), #8175ff);
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: 0 8px 18px rgba(101, 88, 245, .23);
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(101, 88, 245, .3);
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+
+    #loginMessage {
+      min-height: 22px;
+      margin: 14px 0;
+      color: #b42318;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    #loginMessage:empty {
+      margin: 10px 0;
+    }
+
+    .security-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 25px;
+      padding: 13px;
+      border: 1px solid #eaecf0;
+      border-radius: 12px;
+      background: #f9fafb;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .security-note strong {
+      color: #344054;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 25px;
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+
+      .login-layout {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        max-width: 460px;
+        border-radius: 22px;
+      }
+
+      .brand-panel {
+        display: none;
+      }
+
+      .form-panel {
+        padding: 32px 25px;
+      }
+
+      .mobile-logo {
+        display: block;
+      }
+
+      .welcome h1 {
+        font-size: 28px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="login-layout">
+    <section class="brand-panel" aria-label="Bookshop introduction">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">📚</span>
+        <span>ChachaPkorir<br>Bookshop</span>
+      </div>
+
+      <div class="brand-copy">
+        <span class="eyebrow">Administrator portal</span>
+        <h2>Manage your bookstore with confidence.</h2>
+        <p>
+          Access your book inventory, customer orders and store
+          operations from one convenient dashboard.
+        </p>
+      </div>
+
+      <div class="brand-footer">
+        © 2026 ChachaPkorir Bookshop. All rights reserved.
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <div class="login-card">
+        <div class="mobile-logo" aria-hidden="true">📚</div>
+
+        <header class="welcome">
+          <h1>Welcome back 👋</h1>
+          <p>Sign in with your administrator account to continue.</p>
+        </header>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="email">Email address</label>
+            <div class="input-wrap">
+              <span class="field-icon" aria-hidden="true">✉</span>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="admin@example.com"
+                autocomplete="username"
+                required
+                maxlength="255"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <span class="field-icon" aria-hidden="true">🔒</span>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+                maxlength="200"
+              >
+            </div>
+          </div>
+
+          <button class="submit-btn" type="submit">
+            Sign in to dashboard →
+          </button>
+        </form>
+
+        <p id="loginMessage" role="status" aria-live="polite"></p>
+
+        <div class="security-note">
+          <span aria-hidden="true">🛡️</span>
+          <span>
+            <strong>Secure administrator access</strong><br>
+            Your account must have administrator permissions.
+          </span>
+        </div>
+
+        <a class="back-link" href="/">← Return to bookstore</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin/login.js" defer></script>
+</body>
+</html>

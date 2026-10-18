@@ -1,0 +1,129 @@
+"use strict";
+
+(() => {
+  const token = new URLSearchParams(window.location.search).get("token");
+  const message = document.getElementById("trackingMessage");
+  const help = document.getElementById("mapHelp");
+  let map = null;
+  let destinationMarker = null;
+  let currentMarker = null;
+  let routeLine = null;
+  let polling = false;
+
+  function setMessage(text, isError = false) {
+    message.textContent = text;
+    message.classList.toggle("tracking-error", isError);
+  }
+
+  function validPoint(lat, lon) {
+    if (lat === null || lat === undefined || lon === null || lon === undefined) return null;
+    const a = Number(lat), b = Number(lon);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a < -90 || a > 90 || b < -180 || b > 180) return null;
+    return [a, b];
+  }
+
+  function ensureMap() {
+    if (map || !window.L) return;
+    map = L.map("trackingMap").setView([-0.0236, 37.0693], 6);
+    L.tileLayer(
+      "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution:
+          '&copy; OpenStreetMap contributors &copy; CARTO'
+      }
+    ).addTo(map);
+  }
+  function render(order) {
+    document.getElementById("trackingHeading").textContent =
+      "Order " + (order.order_number || "");
+    document.getElementById("trackingOrderNumber").textContent = order.order_number || "—";
+    document.getElementById("trackingStatus").textContent = order.order_status || "Unknown";
+    document.getElementById("trackingMethod").textContent = order.delivery_method || "Unknown";
+    document.getElementById("trackingUpdated").textContent = order.location_updated_at
+      ? new Date(order.location_updated_at).toLocaleString()
+      : "Not available";
+
+    ensureMap();
+    if (!map) {
+      help.textContent = "The map library could not load. Refresh this page when connected to the internet.";
+      return;
+    }
+
+    const destination = validPoint(order.destination_latitude, order.destination_longitude);
+    const current = order.location_sharing
+      ? validPoint(order.current_latitude, order.current_longitude)
+      : null;
+
+    if (destination) {
+      if (!destinationMarker) {
+        destinationMarker = L.marker(destination).addTo(map).bindPopup("Delivery destination");
+      } else destinationMarker.setLatLng(destination);
+    } else if (destinationMarker) {
+      map.removeLayer(destinationMarker);
+      destinationMarker = null;
+    }
+
+    if (current) {
+      if (!currentMarker) {
+        currentMarker = L.marker(current).addTo(map).bindPopup("Delivery person's shared location");
+      } else currentMarker.setLatLng(current);
+    } else if (currentMarker) {
+      map.removeLayer(currentMarker);
+      currentMarker = null;
+    }
+
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+    if (destination && current) {
+      routeLine = L.polyline([current, destination], { dashArray: "6 8" }).addTo(map);
+      map.fitBounds(L.latLngBounds([current, destination]).pad(0.2));
+    } else if (destination) {
+      map.setView(destination, 15);
+    } else if (current) {
+      map.setView(current, 14);
+    }
+
+    if (order.delivery_method !== "delivery") {
+      help.textContent = "This order is for collection, not home delivery.";
+    } else if (!destination && !current) {
+      help.textContent = "The bookshop has not set map coordinates yet.";
+    } else if (!order.location_sharing) {
+      help.textContent = "The destination is shown if available. Live delivery location sharing is currently off.";
+    } else if (!current) {
+      help.textContent = "Location sharing is enabled, but the latest delivery GPS coordinates have not been received.";
+    } else {
+      help.textContent = "The map shows the destination and the latest shared delivery GPS position. The dashed line is a visual connection, not a road route.";
+    }
+  }
+
+  async function refresh() {
+    if (!token) {
+      setMessage("This tracking link is missing its token. Please use the link provided after checkout.", true);
+      document.getElementById("trackingHeading").textContent = "Tracking link unavailable";
+      return;
+    }
+    if (polling) return;
+    polling = true;
+    try {
+      const response = await fetch("/api/orders/track/" + encodeURIComponent(token), {
+        cache: "no-store"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.order) {
+        throw new Error(result.message || "Unable to load tracking details.");
+      }
+      render(result.order);
+      setMessage("Tracking details updated. This page checks for updates every 15 seconds.");
+    } catch (error) {
+      setMessage(error.message || "Unable to load tracking details.", true);
+    } finally {
+      polling = false;
+    }
+  }
+
+  refresh();
+  window.setInterval(refresh, 15000);
+})();

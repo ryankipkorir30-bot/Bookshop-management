@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10243a">
+  <title>Book Details | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/book.js" defer></script>
+</head>
+<body>
+  <div class="announcement">Find your next great read 📚</div>
+
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span>
+        <strong>ChachaPkorir</strong>
+        <small>BOOKSHOP · KENYA</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/#catalog">Browse Books</a>
+      <a href="/#about">About Us</a>
+    </nav>
+
+    <a class="cart-button" href="/pages/checkout.html">
+      🛒 Cart <span class="cart-count" id="cartCount">0</span>
+    </a>
+  </header>
+
+  <main class="product-page">
+    <div class="breadcrumbs">
+      <a href="/">Home</a>
+      <span>/</span>
+      <a href="/#catalog">Books</a>
+      <span>/</span>
+      <span id="breadcrumbTitle">Book details</span>
+    </div>
+
+    <div id="bookMessage" class="store-message" role="status" aria-live="polite">
+      Loading book details...
+    </div>
+
+    <section id="bookDetails" class="product-layout" hidden>
+      <div class="product-image-panel">
+        <img id="bookCover" class="product-image" alt="Book cover">
+      </div>
+
+      <div class="product-information">
+        <span class="eyebrow" id="bookCategory">BOOK COLLECTION</span>
+        <h1 id="bookTitle">Book title</h1>
+        <p class="product-author">By <span id="bookAuthor"></span></p>
+
+        <div class="product-price" id="bookPrice"></div>
+        <div id="bookStock" class="product-stock"></div>
+
+        <div class="product-description">
+          <h2>About this book</h2>
+          <p id="bookDescription"></p>
+        </div>
+
+        <div class="quantity-control">
+          <label for="bookQuantity">Quantity</label>
+          <div class="quantity-buttons">
+            <button id="decreaseQuantity" type="button" aria-label="Decrease quantity">−</button>
+            <input id="bookQuantity" type="number" min="1" value="1" inputmode="numeric">
+            <button id="increaseQuantity" type="button" aria-label="Increase quantity">+</button>
+          </div>
+        </div>
+
+        <button id="addBookButton" class="primary-button product-add-button" type="button">
+          Add to Cart
+        </button>
+
+        <a class="secondary-button product-back-button" href="/#catalog">
+          ← Continue browsing
+        </a>
+
+        <p class="product-help">Delivery or collection options are available at checkout.</p>
+      </div>
+    </section>
+
+    <section class="product-extra">
+      <h2>More to discover</h2>
+      <p>Explore the collection and find another book to enjoy.</p>
+      <a href="/#catalog" class="primary-button">Browse All Books →</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span><strong>ChachaPkorir</strong><small>BOOKSHOP · KENYA</small></span>
+    </a>
+    <p>© <span id="currentYear"></span> ChachaPkorir Bookshop</p>
+  </footer>
+</body>
+</html>

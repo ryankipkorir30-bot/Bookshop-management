@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d2b">
+  <title>Admin Dashboard | ChachaPkorir Bookshop</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --green: #174a32;
+      --green-dark: #103522;
+      --green-light: #e8f3eb;
+      --gold: #d4a44e;
+      --page: #f4f7f4;
+      --white: #fff;
+      --text: #203027;
+      --muted: #69766d;
+      --border: #e0e8e1;
+      --danger: #b42318;
+      --shadow: 0 8px 30px rgba(20, 55, 35, .06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    a { color: inherit; text-decoration: none; }
+
+    .topbar {
+      background: var(--green-dark);
+      color: white;
+      padding: 16px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .brand { font-weight: 800; font-size: 1.12rem; }
+    .brand small {
+      display: block;
+      margin-top: 4px;
+      color: #d2e4d7;
+      font-size: .78rem;
+      font-weight: 400;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a, .nav button {
+      border: 1px solid rgba(255,255,255,.25);
+      color: white;
+      background: transparent;
+      border-radius: 9px;
+      padding: 9px 13px;
+      cursor: pointer;
+    }
+
+    .nav a:hover, .nav button:hover { background: rgba(255,255,255,.12); }
+
+    main {
+      width: min(1450px, 92%);
+      margin: 28px auto 60px;
+    }
+
+    .welcome {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    h1 { margin: 0 0 7px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+    h2 { margin: 0; font-size: 1.2rem; }
+    h3 { margin: 0 0 16px; font-size: 1rem; }
+    .muted { color: var(--muted); }
+    .welcome p { margin: 0; }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(16px, 3vw, 25px);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .panel-heading p { margin: 5px 0 0; }
+
+    .overview-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .overview-card {
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 19px;
+      background: linear-gradient(145deg, #fff, #f8fbf8);
+      min-width: 0;
+    }
+
+    .overview-card span, .overview-card small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .overview-card strong {
+      display: block;
+      margin: 10px 0;
+      color: var(--green);
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      overflow-wrap: anywhere;
+    }
+
+    .overview-charts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 25px;
+    }
+
+    .chart-panel {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .chart-wrap { position: relative; height: 300px; }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--green);
+      color: white;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    .button:hover { background: var(--green-dark); }
+    .button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .button.secondary {
+      background: #edf4ee;
+      color: var(--green);
+      border: 1px solid #d5e4d7;
+    }
+
+    .button.secondary:hover { background: #dfece1; }
+
+    .button.danger { background: var(--danger); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field label { font-size: .9rem; font-weight: 650; }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d5dfd7;
+      border-radius: 9px;
+      background: white;
+      color: var(--text);
+    }
+
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: 2px solid #9ac9a8;
+      border-color: var(--green);
+    }
+
+    .form-actions { margin-top: 17px; }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+      font-size: .9rem;
+    }
+
+    th {
+      background: #f4f8f4;
+      color: #4a5c4e;
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fafcfa; }
+
+    .table-input {
+      width: 100%;
+      max-width: 140px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #edf4ee;
+      color: var(--green);
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    .status.warning { background: #fff3d7; color: #815600; }
+    .status.error { background: #fde8e7; color: #a21b1b; }
+
+    .message {
+      margin: 12px 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { color: var(--danger); }
+    .message.success { color: var(--green); }
+
+    .empty { text-align: center; color: var(--muted); padding: 24px; }
+    .updated { margin-top: 18px; font-size: .83rem; color: var(--muted); }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 15px;
+      font-size: .85rem;
+    }
+
+    @media (max-width: 850px) {
+      .overview-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .overview-charts { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      main { width: 94%; margin-top: 20px; }
+      .overview-cards, .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .chart-wrap { height: 260px; }
+      .topbar { padding: 15px 3%; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="/admin/dashboard.html">
+      📚 ChachaPkorir Bookshop
+      <small>Administrator workspace</small>
+    </a>
+
+    <nav class="nav" aria-label="Admin navigation">
+      <a href="/">View store</a>
+      <a href="/admin/sales.html">Sales analytics</a>
+      <button id="logoutButton" type="button">Log out</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="welcome">
+      <div>
+        <h1>Admin dashboard</h1>
+        <p class="muted">Manage books, monitor orders and track your store's performance.</p>
+      </div>
+      <button id="refreshButton" class="button secondary" type="button">
+        Refresh inventory and orders
+      </button>
+    </section>
+
+    <p id="pageMessage" class="message" role="status" aria-live="polite">
+      Checking administrator access...
+    </p>
+
+    <!-- BUSINESS OVERVIEW -->
+    <section class="panel" aria-label="Business overview">
+      <div class="panel-heading">
+        <div>
+          <h2>Business overview</h2>
+          <p class="muted">Statistics refresh automatically every 30 seconds.</p>
+        </div>
+        <button id="refreshAnalytics" class="button secondary" type="button">
+          Refresh figures
+        </button>
+      </div>
+
+      <p id="dashboardAnalyticsMessage" class="message" role="status" aria-live="polite">
+        Loading business figures...
+      </p>
+
+      <div class="overview-cards">
+        <article class="overview-card">
+          <span>Total orders</span>
+          <strong id="dashTotalOrders">—</strong>
+          <small id="dashRecentOrders">All recorded orders</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Paid revenue</span>
+          <strong id="dashRevenue">—</strong>
+          <small>Last 30 days</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Books sold</span>
+          <strong id="dashBooksSold">—</strong>
+          <small>Paid orders · Last 30 days</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Pending orders</span>
+          <strong id="dashPendingOrders">—</strong>
+          <small>Awaiting processing</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Books in catalogue</span>
+          <strong id="dashTotalBooks">—</strong>
+          <small id="dashStockUnits">Copies currently in stock</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Low-stock books</span>
+          <strong id="dashLowStock">—</strong>
+          <small>Published books with 5 or fewer copies</small>
+        </article>
+      </div>
+
+      <div class="overview-charts">
+        <article class="chart-panel">
+          <h3>Revenue and books sold</h3>
+          <div class="chart-wrap">
+            <canvas id="dashboardRevenueChart" aria-label="Revenue and books sold chart"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-panel">
+          <h3>Order activity</h3>
+          <div class="chart-wrap">
+            <canvas id="dashboardOrdersChart" aria-label="Order activity chart"></canvas>
+          </div>
+        </article>
+      </div>
+
+      <p id="dashboardUpdatedAt" class="updated">Waiting for the first update...</p>
+    </section>
+
+    <!-- ADD BOOK -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Add a new book</h2>
+          <p class="muted">Add a title to your book catalogue.</p>
+        </div>
+      </div>
+
+      <p id="formMessage" class="message" role="status" aria-live="polite"></p>
+
+      <form id="bookForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="title">Book title *</label>
+            <input id="title" name="title" required maxlength="200">
+          </div>
+
+          <div class="field">
+            <label for="author">Author *</label>
+            <input id="author" name="author" required maxlength="150">
+          </div>
+
+          <div class="field">
+            <label for="category">Category</label>
+            <input id="category" name="category" maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="price">Price (KSh) *</label>
+            <input id="price" name="price" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="field">
+            <label for="stock_quantity">Stock quantity *</label>
+            <input id="stock_quantity" name="stock_quantity" type="number" min="0" step="1" required>
+          </div>
+
+          <div class="field">
+            <label for="cover_image">Cover image URL (optional)</label>
+            <input id="cover_image" name="cover_image" type="url" placeholder="https://example.com/book.jpg">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="saveBookButton" class="button" type="submit">Save book</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Book inventory</h2>
+          <p class="muted"><span id="inventoryCount">0</span> books loaded</p>
+        </div>
+        <button id="refreshInventoryButton" class="button secondary" type="button">
+          Refresh inventory
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Author</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Availability</th>
+            </tr>
+          </thead>
+          <tbody id="inventory">
+            <tr><td colspan="6" class="empty">Loading inventory...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Customer orders</h2>
+          <p class="muted"><span id="ordersCount">0</span> orders loaded</p>
+        </div>
+        <button id="refreshOrdersButton" class="button secondary" type="button">
+          Refresh orders
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Payment</th>
+              <th>Order status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="ordersList">
+            <tr><td colspan="6" class="empty">Loading orders...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">ChachaPkorir Bookshop · Administrator dashboard</footer>
+
+  <script>
+    "use strict";
+
+    const token = sessionStorage.getItem("bookshopToken");
+
+    let revenueChart = null;
+    let ordersChart = null;
+    let analyticsLoading = false;
+    let mainLoading = false;
+
+    const $ = id => document.getElementById(id);
+
+    const formatMoney = value => new Intl.NumberFormat("en-KE", {
+      style: "currency",
+      currency: "KES",
+      maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+
+    const formatNumber = value => new Intl.NumberFormat("en-KE")
+      .format(Number(value) || 0);
+
+    const formatDate = value => {
+      if (!value) return "—";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-KE");
+    };
+
+    // Always use textContent for database-provided values.
+    function addCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = value == null ? "—" : String(value);
+      row.appendChild(cell);
+      return cell;
+    }
+
+    function showMessage(element, message, type = "") {
+      element.textContent = message;
+      element.className = "message" + (type ? " " + type : "");
+    }
+
+    function logout() {
+      sessionStorage.removeItem("bookshopToken");
+      window.location.replace("/admin/login.html");
+    }
+
+    async function api(url, options = {}) {
+      const headers = new Headers(options.headers || {});
+      headers.set("Authorization", "Bearer " + token);
+
+      if (options.body && !(options.body instanceof FormData)) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      const response = await fetch(url, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || response.status === 403) {
+        logout();
+        throw new Error("Your administrator session has expired or access was denied.");
+      }
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Request failed (" + response.status + ").");
+      }
+
+      return data;
+    }
+
+    function updateOverviewCards(overview) {
+      $("dashTotalOrders").textContent = formatNumber(overview.totalOrders);
+      $("dashRecentOrders").textContent =
+        formatNumber(overview.recentOrders) + " orders in the last 30 days";
+      $("dashRevenue").textContent = formatMoney(overview.paidRevenue30d);
+      $("dashBooksSold").textContent = formatNumber(overview.booksSold30d);
+      $("dashPendingOrders").textContent = formatNumber(overview.pendingOrders);
+      $("dashTotalBooks").textContent = formatNumber(overview.totalBooks);
+      $("dashStockUnits").textContent =
+        formatNumber(overview.stockUnits) + " copies in stock";
+      $("dashLowStock").textContent = formatNumber(overview.lowStockBooks);
+    }
+
+    function drawRevenueChart(sales) {
+      if (typeof Chart === "undefined") {
+        throw new Error("Chart.js did not load. Check your internet connection.");
+      }
+
+      const labels = sales.map(item => new Date(item.date).toLocaleDateString(
+        "en-KE", { day: "numeric", month: "short" }
+      ));
+
+      if (revenueChart) revenueChart.destroy();
+
+      revenueChart = new Chart($("dashboardRevenueChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Paid revenue (KSh)",
+              data: sales.map(item => Number(item.revenue) || 0),
+              borderColor: "#236b48",
+              backgroundColor: "rgba(35, 107, 72, 0.12)",
+              fill: true,
+              tension: 0.3,
+              yAxisID: "revenue"
+            },
+            {
+              label: "Books sold",
+              data: sales.map(item => Number(item.booksSold) || 0),
+              borderColor: "#d19a42",
+              backgroundColor: "#d19a42",
+              tension: 0.3,
+              yAxisID: "books"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            revenue: {
+              type: "linear",
+              position: "left",
+              beginAtZero: true,
+              title: { display: true, text: "KSh" }
+            },
+            books: {
+              type: "linear",
+              position: "right",
+              beginAtZero: true,
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: "Books" }
+            }
+          }
+        }
+      });
+    }
+
+    function drawOrdersChart(orders) {
+      if (typeof Chart === "undefined") return;
+
+      // Show order counts grouped by date, using the latest returned orders.
+      const counts = new Map();
+
+      for (const order of orders) {
+        if (!order.created_at) continue;
+        const date = new Date(order.created_at);
+        if (Number.isNaN(date.getTime())) continue;
+
+        const key = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0")
+        ].join("-");
+
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+
+      const entries = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-14);
+
+      if (ordersChart) ordersChart.destroy();
+
+      ordersChart = new Chart($("dashboardOrdersChart"), {
+        type: "bar",
+        data: {
+          labels: entries.map(([date]) => {
+            const [year, month, day] = date.split("-").map(Number);
+            return new Date(year, month - 1, day).toLocaleDateString(
+              "en-KE", { day: "numeric", month: "short" }
+            );
+          }),
+          datasets: [{
+            label: "Orders received",
+            data: entries.map(([, count]) => count),
+            backgroundColor: "#80b991",
+            hoverBackgroundColor: "#236b48",
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function refreshAnalytics() {
+      if (analyticsLoading || !token) return;
+      analyticsLoading = true;
+      $("refreshAnalytics").disabled = true;
+
+      try {
+        const [overviewData, salesData, ordersData] = await Promise.all([
+          api("/api/analytics/overview"),
+          api("/api/analytics/sales?period=day"),
+          api("/api/orders/admin")
+        ]);
+
+        updateOverviewCards(overviewData.overview);
+        drawRevenueChart(salesData.sales || []);
+        drawOrdersChart(ordersData.orders || []);
+
+        showMessage($("dashboardAnalyticsMessage"), "Analytics updated successfully.", "success");
+        $("dashboardUpdatedAt").textContent =
+          "Last refreshed: " + new Date().toLocaleString("en-KE") +
+          " · Refreshes every 30 seconds.";
+      } catch (error) {
+        console.error("Dashboard analytics:", error);
+        showMessage(
+          $("dashboardAnalyticsMessage"),
+          "Could not update analytics: " + error.message,
+          "error"
+        );
+      } finally {
+        analyticsLoading = false;
+        $("refreshAnalytics").disabled = false;
+      }
+    }
+
+    async function loadInventory() {
+      const body = $("inventory");
+      body.replaceChildren();
+
+      try {
+        const data = await api("/api/books/admin");
+        const books = Array.isArray(data.books) ? data.books : [];
+
+        $("inventoryCount").textContent = formatNumber(books.length);
+
+        if (!books.length) {
+          const row = body.insertRow();
+          const cell = row.insertCell();
+          cell.colSpan = 6;
+          cell.className = "empty";
+          cell.textContent = "No books found.";
+          return;
+        }
+
+        for (const book of books) {
+          const row = body.insertRow();
+          addCell(row, book.title);
+          addCell(row, book.author);
+          addCell(row, book.category || "Uncategorised");
+          addCell(row, formatMoney(book.price));
+          addCell(row, formatNumber(book.stock_quantity));
+
+          const availability = addCell(row, "");
+          const badge = document.createElement("span");
+          badge.className = "status" +
+            (Number(book.stock_quantity) <= 5 ? " warning" : "");
+          badge.textContent = Number(book.stock_quantity) <= 5 ? "Low stock" : "In stock";
+          availability.appendChild(badge);
+        }
+      } catch (error) {
+        const row = body.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 6;
+        cell.className = "empty";
+        cell.textContent = "Unable to load inventory: " + error.message;
+      }
+    }
+
+    async function loadOrders() {
+      const body = $("ordersList");
+      body.replaceChildren();
+
+      try {
+        const data = await api("/api/orders/admin");
+        const orders = Array.isArray(data.orders) ? data.orders : [];
+
+        $("ordersCount").textContent = formatNumber(orders.length);
+
+        if (!orders.length) {
+          const row = body.insertRow();
+          const cell = row.insertCell();
+          cell.colSpan = 6;
+          cell.className = "empty";
+          cell.textContent = "No customer orders found.";
+          return;
+        }
+
+        for (const order of orders) {
+          const row = body.insertRow();
+          addCell(row, order.order_number || order.id);
+          addCell(row, order.customer_name || order.full_name || order.customer_email || "Customer");
+          addCell(row, formatMoney(order.total_amount));
+
+          const paymentCell = addCell(row, "");
+          const paymentBadge = document.createElement("span");
+          paymentBadge.className = "status";
+          paymentBadge.textContent = order.payment_status || "Unknown";
+          paymentCell.appendChild(paymentBadge);
+
+          const statusCell = addCell(row, "");
+          const statusBadge = document.createElement("span");
+          statusBadge.className = "status" +
+            (order.order_status === "cancelled" ? " error" :
+             order.order_status === "pending" ? " warning" : "");
+          statusBadge.textContent = order.order_status || "Unknown";
+          statusCell.appendChild(statusBadge);
+
+          addCell(row, formatDate(order.created_at));
+        }
+      } catch (error) {
+        const row = body.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 6;
+        cell.className = "empty";
+        cell.textContent = "Unable to load orders: " + error.message;
+      }
+    }
+
+    async function refreshMainTables() {
+      if (mainLoading || !token) return;
+      mainLoading = true;
+      $("refreshButton").disabled = true;
+
+      try {
+        await Promise.all([loadInventory(), loadOrders()]);
+        showMessage($("pageMessage"), "Administrator dashboard loaded.", "success");
+      } catch (error) {
+        showMessage($("pageMessage"), error.message, "error");
+      } finally {
+        mainLoading = false;
+        $("refreshButton").disabled = false;
+      }
+    }
+
+    $("bookForm").addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const button = $("saveBookButton");
+      button.disabled = true;
+      showMessage($("formMessage"), "Saving book...");
+
+      const form = new FormData(event.currentTarget);
+      const book = {
+        title: String(form.get("title") || "").trim(),
+        author: String(form.get("author") || "").trim(),
+        category: String(form.get("category") || "").trim(),
+        price: Number(form.get("price")),
+        stock_quantity: Number(form.get("stock_quantity")),
+        cover_image: String(form.get("cover_image") || "").trim()
+      };
+
+      try {
+        // Confirm this POST path matches your existing bookRoutes.js.
+        await api("/api/books/admin", {
+          method: "POST",
+          body: JSON.stringify(book)
+        });
+
+        event.currentTarget.reset();
+        showMessage($("formMessage"), "Book saved successfully.", "success");
+        await Promise.all([loadInventory(), refreshAnalytics()]);
+      } catch (error) {
+        showMessage($("formMessage"), "Could not save book: " + error.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    $("refreshAnalytics").addEventListener("click", refreshAnalytics);
+    $("refreshButton").addEventListener("click", refreshMainTables);
+    $("refreshInventoryButton").addEventListener("click", loadInventory);
+    $("refreshOrdersButton").addEventListener("click", loadOrders);
+    $("logoutButton").addEventListener("click", logout);
+
+    if (!token) {
+      window.location.replace("/admin/login.html");
+    } else {
+      refreshMainTables();
+      refreshAnalytics();
+      setInterval(refreshAnalytics, 30000);
+      setInterval(refreshMainTables, 30000);
+    }
+  </script>
+</body>
+</html>

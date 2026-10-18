@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d2b">
+  <title>Admin Dashboard | ChachaPkorir Bookshop</title>
+
+  <script src="/vendor/chart.umd.js" defer></script>
+
+  <style>
+    :root {
+      --green: #174a32;
+      --green-dark: #103522;
+      --green-light: #e8f3eb;
+      --gold: #d4a44e;
+      --page: #f4f7f4;
+      --white: #fff;
+      --text: #203027;
+      --muted: #69766d;
+      --border: #e0e8e1;
+      --danger: #b42318;
+      --shadow: 0 8px 30px rgba(20, 55, 35, .06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    a { color: inherit; text-decoration: none; }
+
+    .topbar {
+      background: var(--green-dark);
+      color: white;
+      padding: 16px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .brand { font-weight: 800; font-size: 1.12rem; }
+    .brand small {
+      display: block;
+      margin-top: 4px;
+      color: #d2e4d7;
+      font-size: .78rem;
+      font-weight: 400;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a, .nav button {
+      border: 1px solid rgba(255,255,255,.25);
+      color: white;
+      background: transparent;
+      border-radius: 9px;
+      padding: 9px 13px;
+      cursor: pointer;
+    }
+
+    .nav a:hover, .nav button:hover { background: rgba(255,255,255,.12); }
+
+    main {
+      width: min(1450px, 92%);
+      margin: 28px auto 60px;
+    }
+
+    .welcome {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    h1 { margin: 0 0 7px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+    h2 { margin: 0; font-size: 1.2rem; }
+    h3 { margin: 0 0 16px; font-size: 1rem; }
+    .muted { color: var(--muted); }
+    .welcome p { margin: 0; }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(16px, 3vw, 25px);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .panel-heading p { margin: 5px 0 0; }
+
+    .overview-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .overview-card {
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 19px;
+      background: linear-gradient(145deg, #fff, #f8fbf8);
+      min-width: 0;
+    }
+
+    .overview-card span, .overview-card small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .overview-card strong {
+      display: block;
+      margin: 10px 0;
+      color: var(--green);
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      overflow-wrap: anywhere;
+    }
+
+    .overview-charts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 25px;
+    }
+
+    .chart-panel {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .chart-wrap { position: relative; height: 300px; }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--green);
+      color: white;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    .button:hover { background: var(--green-dark); }
+    .button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .button.secondary {
+      background: #edf4ee;
+      color: var(--green);
+      border: 1px solid #d5e4d7;
+    }
+
+    .button.secondary:hover { background: #dfece1; }
+
+    .button.danger { background: var(--danger); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field label { font-size: .9rem; font-weight: 650; }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d5dfd7;
+      border-radius: 9px;
+      background: white;
+      color: var(--text);
+    }
+
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: 2px solid #9ac9a8;
+      border-color: var(--green);
+    }
+
+    .form-actions { margin-top: 17px; }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+      font-size: .9rem;
+    }
+
+    th {
+      background: #f4f8f4;
+      color: #4a5c4e;
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fafcfa; }
+
+    .table-input {
+      width: 100%;
+      max-width: 140px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #edf4ee;
+      color: var(--green);
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    .status.warning { background: #fff3d7; color: #815600; }
+    .status.error { background: #fde8e7; color: #a21b1b; }
+
+    .message {
+      margin: 12px 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { color: var(--danger); }
+    .message.success { color: var(--green); }
+
+    .empty { text-align: center; color: var(--muted); padding: 24px; }
+    .updated { margin-top: 18px; font-size: .83rem; color: var(--muted); }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 15px;
+      font-size: .85rem;
+    }
+
+    @media (max-width: 850px) {
+      .overview-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .overview-charts { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      main { width: 94%; margin-top: 20px; }
+      .overview-cards, .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .chart-wrap { height: 260px; }
+      .topbar { padding: 15px 3%; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="/admin/dashboard.html">
+      📚 ChachaPkorir Bookshop
+      <small>Administrator workspace</small>
+    </a>
+
+    <nav class="nav" aria-label="Admin navigation">
+      <a href="/">View store</a>
+      <a href="/admin/sales.html">Sales analytics</a>
+      <button id="logoutButton" type="button">Log out</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="welcome">
+      <div>
+        <h1>Admin dashboard</h1>
+        <p class="muted">Manage books, monitor orders and track your store's performance.</p>
+      </div>
+      <button id="refreshButton" class="button secondary" type="button">
+        Refresh inventory and orders
+      </button>
+    </section>
+
+    <p id="pageMessage" class="message" role="status" aria-live="polite">
+      Checking administrator access...
+    </p>
+
+    <!-- BUSINESS OVERVIEW -->
+    <section class="panel" aria-label="Business overview">
+      <div class="panel-heading">
+        <div>
+          <h2>Business overview</h2>
+          <p class="muted">Statistics refresh automatically every 30 seconds.</p>
+        </div>
+        <button id="refreshAnalytics" class="button secondary" type="button">
+          Refresh figures
+        </button>
+      </div>
+
+      <p id="dashboardAnalyticsMessage" class="message" role="status" aria-live="polite">
+        Loading business figures...
+      </p>
+
+      <div class="overview-cards">
+        <article class="overview-card">
+          <span>Total orders</span>
+          <strong id="dashTotalOrders">—</strong>
+          <small id="dashRecentOrders">All recorded orders</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Paid revenue</span>
+          <strong id="dashRevenue">—</strong>
+          <small>Last 30 days</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Books sold</span>
+          <strong id="dashBooksSold">—</strong>
+          <small>Paid orders · Last 30 days</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Pending orders</span>
+          <strong id="dashPendingOrders">—</strong>
+          <small>Awaiting processing</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Books in catalogue</span>
+          <strong id="dashTotalBooks">—</strong>
+          <small id="dashStockUnits">Copies currently in stock</small>
+        </article>
+
+        <article class="overview-card">
+          <span>Low-stock books</span>
+          <strong id="dashLowStock">—</strong>
+          <small>Published books with 5 or fewer copies</small>
+        </article>
+      </div>
+
+      <div class="overview-charts">
+        <article class="chart-panel">
+          <h3>Revenue and books sold</h3>
+          <div class="chart-wrap">
+            <canvas id="dashboardRevenueChart" aria-label="Revenue and books sold chart"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-panel">
+          <h3>Order activity</h3>
+          <div class="chart-wrap">
+            <canvas id="dashboardOrdersChart" aria-label="Order activity chart"></canvas>
+          </div>
+        </article>
+      </div>
+
+      <p id="dashboardUpdatedAt" class="updated">Waiting for the first update...</p>
+    </section>
+
+    <!-- ADD BOOK -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Add a new book</h2>
+          <p class="muted">Add a title to your book catalogue.</p>
+        </div>
+      </div>
+
+      <p id="formMessage" class="message" role="status" aria-live="polite"></p>
+
+      <form id="bookForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="title">Book title *</label>
+            <input id="title" name="title" required maxlength="200">
+          </div>
+
+          <div class="field">
+            <label for="author">Author *</label>
+            <input id="author" name="author" required maxlength="150">
+          </div>
+
+          <div class="field">
+            <label for="category">Category</label>
+            <input id="category" name="category" maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="price">Price (KSh) *</label>
+            <input id="price" name="price" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="field">
+            <label for="stock_quantity">Stock quantity *</label>
+            <input id="stock_quantity" name="stock_quantity" type="number" min="0" step="1" required>
+          </div>
+
+          <div class="field">
+           
+<label for="cover_image">Book Cover Image (optional)</label>
+
+<input
+  id="cover_image"
+  name="cover"
+  type="file"
+  accept="image/jpeg,image/png,image/webp"
+>
+
+<img
+  id="coverPreview"
+  alt="Selected book cover preview"
+  hidden
+  style="width:140px;height:190px;object-fit:contain;margin-top:12px;border-radius:8px;"
+>
+
+<small>Select a JPG, PNG, or WebP image, maximum 5 MB.</small>
+
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="saveBookButton" class="button" type="submit">Save book</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Book inventory</h2>
+          <p class="muted"><span id="inventoryCount">0</span> books loaded</p>
+        </div>
+        <button id="refreshInventoryButton" class="button secondary" type="button">
+          Refresh inventory
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Author</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Availability</th>
+            </tr>
+          </thead>
+          <tbody id="inventory">
+            <tr><td colspan="6" class="empty">Loading inventory...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Customer orders</h2>
+          <p class="muted"><span id="ordersCount">0</span> orders loaded</p>
+        </div>
+        <button id="refreshOrdersButton" class="button secondary" type="button">
+          Refresh orders
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Payment</th>
+              <th>Order status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="ordersList">
+            <tr><td colspan="6" class="empty">Loading orders...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">ChachaPkorir Bookshop · Administrator dashboard</footer>
+
+  <script src="/admin/dashboard.js" defer></script>
+</body>
+</html>

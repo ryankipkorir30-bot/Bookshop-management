@@ -1,0 +1,13 @@
+
+node_modules/
+.env
+uploads/
+.DS_Store
+
+# Local backups
+backups/
+client-backup-*/
+
+# Local secrets and dependencies
+.env
+node_modules/

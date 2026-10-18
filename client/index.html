@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10243a">
+  <meta name="description" content="Discover books, compare prices and order your next favourite read at ChachaPkorir Bookshop Kenya.">
+  <title>ChachaPkorir Bookshop | Discover Your Next Read</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/store.js" defer></script>
+</head>
+<body>
+  <div class="announcement">
+    Your next great read is waiting for you.
+  </div>
+
+  <header class="navbar">
+    <a class="brand" href="/" aria-label="ChachaPkorir Bookshop home">
+      <span class="brand-icon">CP</span>
+      <span>
+        <strong>ChachaPkorir</strong>
+        <small>BOOKSHOP · KENYA</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="/" class="active">Home</a>
+      <a href="#catalog">Browse Books</a>
+      <a href="#about">About Us</a>
+    </nav>
+
+    <button class="cart-button" id="cartButton" type="button" aria-label="Open shopping cart">
+      <span aria-hidden="true">🛒</span>
+      Cart <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">📚 YOUR LOCAL ONLINE BOOKSHOP</span>
+        <h1>Every book opens a <span>new world.</span></h1>
+        <p>
+          Discover your next favourite read, explore new ideas
+          and find books worth keeping.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#catalog" class="primary-button">Explore Books <span>→</span></a>
+          <a href="#about" class="secondary-button">Our Story</a>
+        </div>
+
+        <div class="hero-trust">
+          <span>✓ Easy ordering</span>
+          <span>✓ Delivery or collection</span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-label="Bookshop illustration">
+        <div class="art-orbit"></div>
+        <div class="floating-note note-top">A world of knowledge ✨</div>
+        <div class="book-stack">
+          <div class="book book-one">
+            <span>THE ART OF</span>
+            <strong>THINKING</strong>
+            <small>Discover something new</small>
+          </div>
+          <div class="book book-two">
+            <span>YOUR NEXT</span>
+            <strong>CHAPTER</strong>
+          </div>
+          <div class="book book-three">
+            <span>GROW EVERY DAY</span>
+            <strong>LEARN.</strong>
+          </div>
+        </div>
+        <div class="floating-note note-bottom">Find your next favourite</div>
+      </div>
+    </section>
+
+    <section class="benefits" aria-label="Bookshop benefits">
+      <div><span>📖</span><p><strong>Books for every reader</strong><small>Explore different interests</small></p></div>
+      <div><span>🇰🇪</span><p><strong>Proudly Kenyan</strong><small>Serving readers in Kenya</small></p></div>
+      <div><span>📦</span><p><strong>Flexible fulfilment</strong><small>Delivery or collection</small></p></div>
+    </section>
+
+    <section class="catalog section-container" id="catalog">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">THE BOOK COLLECTION</span>
+          <h2>Find your next read.</h2>
+          <p>Explore the collection and choose a book that inspires you.</p>
+        </div>
+      </div>
+
+      <div class="filters">
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Search titles, authors..."
+            aria-label="Search books"
+          >
+        </label>
+
+        <select id="categoryFilter" aria-label="Filter books by category">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <div id="storeMessage" class="store-message" role="status" aria-live="polite"></div>
+
+      <div id="bookGrid" class="book-grid">
+        <p class="loading-message">Discovering books for you...</p>
+      </div>
+    </section>
+
+    <section class="about-section" id="about">
+      <div class="about-icon">📚</div>
+      <div>
+        <span class="eyebrow">MORE THAN JUST BOOKS</span>
+        <h2>Read more. Learn more. Become more.</h2>
+        <p>
+          ChachaPkorir Bookshop helps readers discover books,
+          explore knowledge and order conveniently.
+          Your next chapter starts here.
+        </p>
+      </div>
+      <a href="#catalog" class="primary-button">Browse Collection →</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span>
+        <strong>ChachaPkorir</strong>
+        <small>BOOKSHOP · KENYA</small>
+      </span>
+    </a>
+    <p>Discover your next chapter. © <span id="currentYear"></span> ChachaPkorir Bookshop.</p>
+  </footer>
+</body>
+</html>

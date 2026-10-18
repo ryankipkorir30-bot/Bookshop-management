@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10243a">
+  <title>Checkout | ChachaPkorir Bookshop</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/checkout.js" defer></script>
+</head>
+<body>
+  <div class="announcement">Almost there — your next read awaits 📚</div>
+
+  <header class="navbar">
+    <a class="brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span>
+        <strong>ChachaPkorir</strong>
+        <small>BOOKSHOP · KENYA</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="/">Home</a>
+      <a href="/#catalog">Browse Books</a>
+      <a href="/pages/cart.html">My Cart</a>
+    </nav>
+
+    <span class="checkout-secure">🔒 Secure checkout</span>
+  </header>
+
+  <main class="checkout-page">
+    <div class="checkout-heading">
+      <span class="eyebrow">YOUR ORDER</span>
+      <h1>Let's get your books to you.</h1>
+      <p>Enter your details and choose how you'd like to receive your books.</p>
+    </div>
+
+    <div class="checkout-steps" aria-label="Checkout progress">
+      <div class="checkout-step complete"><span>1</span> Cart</div>
+      <div class="step-line"></div>
+      <div class="checkout-step active"><span>2</span> Details</div>
+      <div class="step-line"></div>
+      <div class="checkout-step"><span>3</span> Confirmation</div>
+    </div>
+
+    <div id="checkoutMessage" class="checkout-message" role="status" aria-live="polite"></div>
+
+    <div class="checkout-layout">
+      <form id="checkoutForm" class="checkout-form">
+        <section class="checkout-panel">
+          <div class="panel-heading">
+            <span class="panel-number">01</span>
+            <div>
+              <h2>Your contact details</h2>
+              <p>We need these details to manage your order.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field full-width">
+              <label for="customerName">Full name</label>
+              <input id="customerName" name="customerName"
+                type="text" autocomplete="name" maxlength="120"
+                placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-field">
+              <label for="customerEmail">Email address</label>
+              <input id="customerEmail" name="customerEmail"
+                type="email" autocomplete="email" maxlength="255"
+                placeholder="you@example.com" required>
+            </div>
+
+            <div class="form-field">
+              <label for="customerPhone">Phone number</label>
+              <input id="customerPhone" name="customerPhone"
+                type="tel" autocomplete="tel" maxlength="30"
+                placeholder="e.g. 0712345678" required>
+              <small>Use a number we can contact about your order.</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="checkout-panel">
+          <div class="panel-heading">
+            <span class="panel-number">02</span>
+            <div>
+              <h2>How would you like your books?</h2>
+              <p>Choose delivery or collection.</p>
+            </div>
+          </div>
+
+          <div class="choice-grid">
+            <label class="choice-card">
+              <input type="radio" name="deliveryMethod"
+                value="delivery" checked>
+              <span class="choice-icon">🚚</span>
+              <span class="choice-copy">
+                <strong>Home delivery</strong>
+                <small>Estimated fee: KSh 250</small>
+              </span>
+              <span class="choice-check">✓</span>
+            </label>
+
+            <label class="choice-card">
+              <input type="radio" name="deliveryMethod"
+                value="collection">
+              <span class="choice-icon">🏪</span>
+              <span class="choice-copy">
+                <strong>Collection</strong>
+                <small>Collect your order yourself</small>
+              </span>
+              <span class="choice-check">✓</span>
+            </label>
+          </div>
+
+          <div id="addressField" class="form-field address-field">
+            <label for="deliveryAddress">Delivery address</label>
+            <textarea id="deliveryAddress" name="deliveryAddress"
+              rows="3" maxlength="500" autocomplete="street-address"
+              placeholder="Enter your town, area, street and delivery directions"></textarea>
+            <small>Provide enough information for the delivery team to find you.</small>
+          </div>
+        </section>
+
+        <section class="checkout-panel">
+          <div class="panel-heading">
+            <span class="panel-number">03</span>
+            <div>
+              <h2>Payment preference</h2>
+              <p>Choose how you intend to pay.</p>
+            </div>
+          </div>
+
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="mpesa" required>
+              <span class="payment-icon">📱</span>
+              <span>
+                <strong>M-Pesa</strong>
+                <small>Mobile money</small>
+              </span>
+            </label>
+
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="card">
+              <span class="payment-icon">💳</span>
+              <span>
+                <strong>Bank card</strong>
+                <small>Debit or credit card</small>
+              </span>
+            </label>
+
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="cash_on_delivery">
+              <span class="payment-icon">💵</span>
+              <span>
+                <strong>Cash on delivery</strong>
+                <small>Pay when your books arrive</small>
+              </span>
+            </label>
+          </div>
+
+          <p class="payment-notice">
+            Online payments are not activated yet. Choosing M-Pesa or a card
+            records your preference; it does not charge you.
+          </p>
+        </section>
+
+        <button id="placeOrderButton" type="submit"
+          class="primary-button place-order-button">
+          Place Order <span>→</span>
+        </button>
+
+        <p class="checkout-terms">
+          By placing your order, you confirm that the contact and delivery
+          details you provided are correct.
+        </p>
+      </form>
+
+      <aside class="checkout-summary">
+        <div class="summary-title">
+          <h2>Order summary</h2>
+          <a href="/pages/cart.html">Edit cart</a>
+        </div>
+
+        <div id="checkoutItems" class="checkout-items">
+          <p>Loading your books...</p>
+        </div>
+
+        <div class="checkout-total-row">
+          <span>Subtotal</span>
+          <strong id="checkoutSubtotal">KSh 0.00</strong>
+        </div>
+
+        <div class="checkout-total-row">
+          <span>Delivery</span>
+          <strong id="checkoutDelivery">KSh 250.00</strong>
+        </div>
+
+        <div class="checkout-grand-total">
+          <span>Total</span>
+          <strong id="checkoutTotal">KSh 250.00</strong>
+        </div>
+
+        <div class="checkout-help">
+          <span>📦</span>
+          <p><strong>Need help?</strong><br>
+          Make sure your phone number and delivery details are correct.</p>
+        </div>
+      </aside>
+    </div>
+
+    <section id="orderConfirmation" class="order-confirmation" hidden>
+      <div class="success-icon">✓</div>
+      <span class="eyebrow">ORDER RECEIVED</span>
+      <h2>Thank you for your order!</h2>
+      <p id="confirmationMessage"></p>
+
+      <div class="confirmation-reference">
+        <span>Order reference</span>
+        <strong id="confirmationOrderNumber"></strong>
+      </div>
+
+      <div class="confirmation-reference">
+        <span>Order total</span>
+        <strong id="confirmationTotal"></strong>
+      </div>
+
+      <a href="/" class="primary-button">Continue shopping →</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/">
+      <span class="brand-icon">CP</span>
+      <span><strong>ChachaPkorir</strong><small>BOOKSHOP · KENYA</small></span>
+    </a>
+    <p>© <span id="currentYear"></span> ChachaPkorir Bookshop</p>
+  </footer>
+</body>
+</html>

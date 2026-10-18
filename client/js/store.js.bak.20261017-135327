@@ -1,0 +1,214 @@
+"use strict";
+
+const grid = document.getElementById("bookGrid");
+const message = document.getElementById("storeMessage");
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const cartCount = document.getElementById("cartCount");
+const cartButton = document.getElementById("cartButton");
+
+const CART_KEY = "chachaCart";
+let books = [];
+let cart = readCart();
+
+function readCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+    if (!Array.isArray(saved)) return [];
+    return saved.filter(item =>
+      item &&
+      /^\d+$/.test(String(item.id)) &&
+      Number.isSafeInteger(Number(item.quantity)) &&
+      Number(item.quantity) > 0
+    ).map(item => ({ id: String(item.id), quantity: Number(item.quantity) }));
+  } catch {
+    return [];
+  }
+}
+
+function saveCart() {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  updateCart();
+}
+
+function money(value) {
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 2
+  }).format(Number(value) || 0);
+}
+
+function addText(parent, tag, text, className = "") {
+  const element = document.createElement(tag);
+  element.textContent = text ?? "";
+  if (className) element.className = className;
+  parent.appendChild(element);
+  return element;
+}
+
+function makeCover(book) {
+  const wrap = document.createElement("div");
+  wrap.className = "book-cover-wrap";
+  const image = document.createElement("img");
+  image.className = "book-cover";
+  image.alt = `Cover of ${book.title}`;
+  image.loading = "lazy";
+  if (book.cover_image) {
+    image.src = String(book.cover_image).startsWith("/uploads/")
+      ? book.cover_image
+      : `/uploads/books/${encodeURIComponent(book.cover_image)}`;
+    image.onerror = () => {
+      image.remove();
+      addText(wrap, "div", "📚", "book-cover-fallback");
+    };
+  } else {
+    addText(wrap, "div", "📚", "book-cover-fallback");
+  }
+  if (image.getAttribute("src")) wrap.appendChild(image);
+  return wrap;
+}
+
+function renderBooks() {
+  const query = searchInput.value.trim().toLowerCase();
+  const category = categoryFilter.value;
+  const filtered = books.filter(book => {
+    const text = `${book.title || ""} ${book.author || ""} ${book.category || ""}`.toLowerCase();
+    return text.includes(query) && (!category || book.category === category);
+  });
+
+  grid.replaceChildren();
+
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    addText(empty, "div", "🔎", "empty-state-icon");
+    addText(empty, "h3", "No books found");
+    addText(empty, "p", "Try another title, author, or category.");
+    grid.appendChild(empty);
+    return;
+  }
+
+  for (const book of filtered) {
+    const card = document.createElement("article");
+    card.className = "book-card";
+
+    const coverLink = document.createElement("a");
+    coverLink.className = "book-cover-link";
+    coverLink.href = `/pages/book.html?id=${encodeURIComponent(book.id)}`;
+    coverLink.setAttribute("aria-label", `View ${book.title}`);
+    coverLink.appendChild(makeCover(book));
+    card.appendChild(coverLink);
+
+    const body = document.createElement("div");
+    body.className = "book-card-body";
+    if (book.category) addText(body, "span", book.category, "book-category");
+    const titleLink = addText(body, "a", book.title || "Untitled book", "book-title-link");
+    titleLink.href = `/pages/book.html?id=${encodeURIComponent(book.id)}`;
+    addText(body, "p", `By ${book.author || "Unknown author"}`, "muted");
+    addText(body, "p", money(book.price), "price");
+
+    const stock = Math.max(0, Number(book.stock_quantity) || 0);
+    addText(body, "p", stock > 0 ? `${stock} in stock` : "Currently unavailable",
+      stock > 0 ? "stock-note" : "stock-note out-of-stock");
+
+    const actions = document.createElement("div");
+    actions.className = "book-card-actions";
+    const details = addText(actions, "a", "Details", "book-details-link");
+    details.href = `/pages/book.html?id=${encodeURIComponent(book.id)}`;
+
+    const button = addText(actions, "button", stock > 0 ? "Add to cart +" : "Out of stock", "book-add-button");
+    button.type = "button";
+    button.disabled = stock < 1;
+    button.addEventListener("click", () => {
+      const id = String(book.id);
+      const existing = cart.find(item => item.id === id);
+      const nextQuantity = (existing?.quantity || 0) + 1;
+      if (nextQuantity > stock) {
+        showMessage(`Only ${stock} copies of "${book.title}" are available.`, "error");
+        return;
+      }
+      if (existing) existing.quantity = nextQuantity;
+      else cart.push({ id, quantity: 1 });
+      saveCart();
+      showMessage(`${book.title} added to your cart.`, "success");
+      button.textContent = "Added ✓";
+      window.setTimeout(() => {
+        if (document.body.contains(button)) button.textContent = "Add to cart +";
+      }, 1200);
+    });
+
+    body.appendChild(actions);
+    card.appendChild(body);
+    grid.appendChild(card);
+  }
+}
+
+function showMessage(text, type = "") {
+  message.textContent = text;
+  message.className = `store-message ${type}`.trim();
+}
+
+function updateCart() {
+  cartCount.textContent = String(cart.reduce((sum, item) => sum + item.quantity, 0));
+}
+
+function populateCategories() {
+  const current = categoryFilter.value;
+  const categories = [...new Set(books.map(book => book.category).filter(Boolean))]
+    .sort((a, b) => String(a).localeCompare(String(b)));
+  categoryFilter.replaceChildren();
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "All categories";
+  categoryFilter.appendChild(all);
+  for (const category of categories) {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  }
+  if (categories.includes(current)) categoryFilter.value = current;
+}
+
+async function loadBooks() {
+  showMessage("Loading the book collection…");
+  grid.innerHTML = '<p class="loading-message">Finding your next great read…</p>';
+  try {
+    const response = await fetch("/api/books");
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || "Could not load the book catalogue.");
+    }
+    books = Array.isArray(data.books) ? data.books :
+      Array.isArray(data.data) ? data.data :
+      Array.isArray(data) ? data : [];
+    populateCategories();
+    renderBooks();
+    showMessage(`${books.length} book${books.length === 1 ? "" : "s"} available`, "success");
+  } catch (error) {
+    console.error("Book catalogue error:", error);
+    grid.replaceChildren();
+    const panel = document.createElement("div");
+    panel.className = "empty-state";
+    addText(panel, "h3", "We couldn't load the books");
+    addText(panel, "p", "Please check your connection and try again.");
+    const retry = addText(panel, "button", "Try again", "primary-button");
+    retry.type = "button";
+    retry.addEventListener("click", loadBooks);
+    grid.appendChild(panel);
+    showMessage(error.message || "Unable to load books.", "error");
+  }
+}
+
+searchInput.addEventListener("input", renderBooks);
+categoryFilter.addEventListener("change", renderBooks);
+cartButton.addEventListener("click", () => {
+  window.location.href = "/pages/cart.html";
+});
+
+const year = document.getElementById("currentYear");
+if (year) year.textContent = new Date().getFullYear();
+
+saveCart();
+loadBooks();
